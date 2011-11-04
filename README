@@ -1,0 +1,16 @@
+========
+gmail.py
+========
+
+This script uses Google's atom feed to retrieve unread messages in your gmail
+account. urllib takes care of the username and password handling, since I
+figure they'd do a better/safer job of it that I could.
+
+The last line in gmail.py:
+	print '%s at %s: %s <%s> wrote "%s"' % (sdate, stime, \
+	k.find(name).text, k.find(email).text, k.find(title).text)
+is what actually prints the output and can easily be changed with even a
+rudementary understanding of Python for different formats.
+
+If any other information is required from the XML file, the variables defined
+towards the end with purl.org in their string can be used.
