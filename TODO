@@ -1,0 +1,2 @@
+1. add command line parameters to pass username to gmail.py
+2. extension of 1., allow flags to specify whether to print email summary
