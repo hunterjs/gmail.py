@@ -5,11 +5,10 @@ import datetime
 from xml.etree import ElementTree as ET
 
 
-url = 'https://mail.google.com/mail/feed/atom/'
+url = 'https://hvardhan.r@mail.google.com/mail/feed/atom/'
 opener = urllib.FancyURLopener()
 f = opener.open(url)
 feed = f.read()
-
 
 tree = ET.fromstring(feed)
 
@@ -66,8 +65,17 @@ name = "{http://purl.org/atom/ns#}author/{http://purl.org/atom/ns#}name"
 email = "{http://purl.org/atom/ns#}author/{http://purl.org/atom/ns#}email"
 
 
-print '%s unread messages\n\n' % tree.find(fullcount).text
+print
+
+count = int(tree.find(fullcount).text)
+
+if not count:
+    print 'No new messages!\n'
+    exit()
 
 for k in tree.findall(tree[-1].tag):
     sdate, stime = sanitize_datetime(k.find(issued).text)
     print '%s at %s: %s <%s> wrote "%s"' % (sdate, stime, k.find(name).text, k.find(email).text, k.find(title).text)
+    print '\t\tText: %s' % (k.find(summary).text)
+
+print '\nTotal: %s unread messages\n' % count
