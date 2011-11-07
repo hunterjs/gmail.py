@@ -6,6 +6,11 @@ This script uses Google's atom feed to retrieve unread messages in your gmail
 account. urllib takes care of the username and password handling, since I
 figure they'd do a better/safer job of it that I could.
 
+*NOTE*
+	Taken from the urllib documentation page, regarding urllib.open():
+	Warning: When opening HTTPS URLs, it does not attempt to validate the
+	server certificate. Use at your own risk!
+
 The last line in gmail.py:
 	print '%s at %s: %s <%s> wrote "%s"' % (sdate, stime, \
 	k.find(name).text, k.find(email).text, k.find(title).text)
