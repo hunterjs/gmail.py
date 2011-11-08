@@ -19,3 +19,22 @@ rudementary understanding of Python for different formats.
 
 If any other information is required from the XML file, the variables defined
 towards the end with purl.org in their string can be used.
+
+=====
+Usage
+=====
+
+Usage: gmail.py [options] [username1] [username2] ...
+
+Options:
+  -h, --help            show this help message and exit
+  -u USERNAME, --username=USERNAME
+                        your gmail username. use this if you also want to
+                        specify the password on the command line. otherwise
+                        simply pass the usernames as arguments
+  -p PASSWORD, --password=PASSWORD
+                        your gmail password
+  -s, --summary         prints the summary text that is generally visible in
+                        your gmail inbox [default: False]
+  -n PRINTCOUNT         print 'n' messages
+  -a, --all             prints all messages in your inbox
