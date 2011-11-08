@@ -84,7 +84,7 @@ class GMail(object):
         self.negative_day = (-24)*60*60
         assert self.negative_day < 0
 
-    def sanitize_datetime(self, datestring):
+    def _sanitize_datetime(self, datestring):
         """
         accepts the datestring as obtained from the atom feed and returns the time
         in your timezone and the date as one of 'Today','Yesterday', 'The day
@@ -125,7 +125,6 @@ class GMail(object):
         elif email_datetime_date == daybefore_date: sanitized_date = 'Day before yesterday'
         else: sanitized_date = email_datetime.strftime('%B %d, %Y')
 
-        #TODO WTF is this shit??
         sanitized_time = email_datetime.strftime('%l:%M %P')
 
         return sanitized_date, sanitized_time
@@ -150,7 +149,7 @@ class GMail(object):
         for n, k in enumerate(self.tree.findall(self.tree[-1].tag)):
             if printcount == 0: break
             printcount -= 1
-            sdate, stime = self.sanitize_datetime(k.find(self.xml_tags['issued']).text)
+            sdate, stime = self._sanitize_datetime(k.find(self.xml_tags['issued']).text)
             print '%s. %s at %s: %s <%s> wrote "%s"' % (n+1, sdate,stime,
                                             k.find(self.xml_tags['name']).text,
                                             k.find(self.xml_tags['email']).text,
