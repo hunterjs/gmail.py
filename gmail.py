@@ -77,7 +77,10 @@ class GMail(object):
         """
         # negative_day is used later in order to check whether the email came
         # 'Today','Yesterday', or 'The day before'
-        self.TZ = (self.timezone[0]*60 + self.timezone[1])*60
+        
+        timezone_tuple = (int(self.timezone[:-2]), int(self.timezone[-2:]))
+
+        self.TZ = (timezone_tuple[0]*60 + timezone_tuple[1])*60
         self.negative_day = (-24)*60*60
         assert self.negative_day < 0
 
@@ -166,13 +169,14 @@ if __name__ == '__main__':
     parser.add_option("-p", "--password", dest="password", help="your gmail password")
     parser.add_option("-s", "--summary", action="store_true", dest="summary",
                       default=False, help="prints the summary text that is generally visible in your gmail inbox [default: %default]")
+    parser.add_option("-t", "--timezone", dest="timezone", default="+0530", help="specify your timezone in +/-HHMM format [default: %default]")
     parser.add_option("-n", dest="printcount", default=10,
                       help="print 'n' messages")
     parser.add_option("-a", "--all", action="store_true", dest="printall",
                       default=False, help="prints all messages in your inbox")
 
     (options,args) = parser.parse_args()
-
+    
     try: int(options.printcount)
     except ValueError:
         print 'The parameter to -n needs to be a number'
@@ -186,14 +190,14 @@ if __name__ == '__main__':
             print 'The --username flag and the --password flag MUST be used in \
                     conjunction or avoided altogether'
             exit()
-        mailchecker = GMail(timezone=(+5,30))
+        mailchecker = GMail(timezone=options.timezone)
         mailchecker.open_feed(username=options.username, password=options.password)
         mailchecker.printmail(options.summary, options.printcount, options.printall)
 
     feeds = []
 
     for username in args:
-        mailchecker = GMail(timezone=(+5,30))
+        mailchecker = GMail(timezone=options.timezone)
         mailchecker.open_feed(username=username)
         feeds.append(mailchecker)
 
