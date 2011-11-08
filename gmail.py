@@ -47,7 +47,7 @@ class FancyURLopenerMod(FancyURLopener):
             print
             return None, None
 
-url = 'https://hvardhan.r@mail.google.com/mail/feed/atom/'
+url = 'https://mail.google.com/mail/feed/atom/'
 opener = FancyURLopenerMod()
 f = opener.open(url)
 feed = f.read()
