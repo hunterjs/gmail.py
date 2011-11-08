@@ -123,10 +123,10 @@ class GMail(object):
         if email_datetime_date == today_date: sanitized_date = 'Today'
         elif email_datetime_date == yesterday_date: sanitized_date = 'Yesterday'
         elif email_datetime_date == daybefore_date: sanitized_date = 'Day before yesterday'
-        else: sanitized_date = email_datetime_date.strftime('%B %d, %Y')
+        else: sanitized_date = email_datetime.strftime('%B %d, %Y')
 
         #TODO WTF is this shit??
-        sanitized_time = email_datetime_time = email_datetime.strftime('%l:%M %P')
+        sanitized_time = email_datetime.strftime('%l:%M %P')
 
         return sanitized_date, sanitized_time
 
@@ -140,7 +140,7 @@ class GMail(object):
         count = int(self.tree.find(self.xml_tags['fullcount']).text)
 
         if not count:
-            print 'No new messages!\n'
+            print 'No new messages!'
             return 0
         
         printcount = int(printcount)
@@ -206,5 +206,5 @@ if __name__ == '__main__':
     for feed in feeds:
         count.append(feed.printmail(options.summary, options.printcount, options.printall))
     
-    if count: print '\n%s messages recieved' % \
-            ('+ '.join([str(i) for i in count]) if len(count)>1 else count[0] )
+    print '\n%s%s messages recieved' % (reduce(lambda x, y: x+y, count) if count else 'No', 
+            ' ( %s )' % ' + '.join([str(i) for i in count]) if len(count)>1 else '' )
