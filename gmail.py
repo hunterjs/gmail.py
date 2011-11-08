@@ -17,7 +17,6 @@ class FancyURLopenerMod(FancyURLopener):
 
         # once urllib uses new style classes, or in python 3.0+, use:
         # super(FancyURLopenerMod, self).__init__(*args, **kwargs)
-
         # till then this will work, but not in python 3.0+:
         FancyURLopener.__init__(self, *args, **kwargs)
 
@@ -25,8 +24,7 @@ class FancyURLopenerMod(FancyURLopener):
         import getpass
         try: 
             if self.username: user = self.username
-            else: user = raw_input("Enter username for %s at %s: " % (realm,
-                                                                      host))
+            else: user = raw_input("Enter username for %s at %s: " % (realm, host))
             if self.password: passwd = self.password
             else: passwd = getpass.getpass("Enter password for %s in %s at %s: " %
                                            (user, realm, host))
@@ -38,9 +36,7 @@ class FancyURLopenerMod(FancyURLopener):
 class GMail(object):
 
     def __init__(self, timezone=(0,0)):
-
         self.timezone = timezone
-
         self.xml_tags = {
                     'entry' : "{http://purl.org/atom/ns#}entry",
                     'fullcount' : "{http://purl.org/atom/ns#}fullcount",
@@ -68,7 +64,6 @@ class GMail(object):
         f = opener.open(url)
         feed = f.read()
         f.close()
-
         self.tree = ET.fromstring(feed)
 
     def _timezone(self):
@@ -77,9 +72,7 @@ class GMail(object):
         """
         # negative_day is used later in order to check whether the email came
         # 'Today','Yesterday', or 'The day before'
-        
         timezone_tuple = (int(self.timezone[:-2]), int(self.timezone[-2:]))
-
         self.TZ = (timezone_tuple[0]*60 + timezone_tuple[1])*60
         self.negative_day = (-24)*60*60
         assert self.negative_day < 0
@@ -106,10 +99,8 @@ class GMail(object):
 
         # calculate today, yesterday and the day before using the seconds value of 1 day
         today = datetime.datetime.today()
-
         yesterday = datetime.datetime.today() \
                     + datetime.timedelta(0,self.negative_day)
-
         daybefore = datetime.datetime.today() \
                     + datetime.timedelta(0,self.negative_day) \
                     + datetime.timedelta(0,self.negative_day)
@@ -126,24 +117,20 @@ class GMail(object):
         else: sanitized_date = email_datetime.strftime('%B %d, %Y')
 
         sanitized_time = email_datetime.strftime('%l:%M %P')
-
         return sanitized_date, sanitized_time
 
     def printmail(self, summary=False, printcount=10, printall=False):
         """
         Returns the number of emails retrieved
         """
-
         print '\n', self.tree.find(self.xml_tags['title']).text, '\n'
 
         count = int(self.tree.find(self.xml_tags['fullcount']).text)
-
         if not count:
             print 'No new messages!'
             return 0
         
         printcount = int(printcount)
-
         if printall: printcount = -1
 
         for n, k in enumerate(self.tree.findall(self.tree[-1].tag)):
