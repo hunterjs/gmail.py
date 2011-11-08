@@ -167,11 +167,11 @@ if __name__ == '__main__':
     parser.add_option("-u", "--username", dest="username",
             help="your gmail username. use this if you also want to specify the password on the command line. otherwise simply pass the usernames as arguments")
     parser.add_option("-p", "--password", dest="password", help="your gmail password")
-    parser.add_option("-s", "--summary", action="store_true", dest="summary",
-                      default=False, help="prints the summary text that is generally visible in your gmail inbox [default: %default]")
     parser.add_option("-t", "--timezone", dest="timezone", default="+0530", help="specify your timezone in +/-HHMM format [default: %default]")
     parser.add_option("-n", dest="printcount", default=10,
                       help="print 'n' messages")
+    parser.add_option("-s", "--summary", action="store_true", dest="summary",
+                      default=False, help="prints the summary text that is generally visible in your gmail inbox [default: %default]")
     parser.add_option("-a", "--all", action="store_true", dest="printall",
                       default=False, help="prints all messages in your inbox")
 
