@@ -6,40 +6,28 @@ from optparse import OptionParser
 from xml.etree import ElementTree as ET
 
 
-usage = '%prog [options]'
-parser = OptionParser(usage=usage)
-parser.add_option("-u", "--username", dest="username", help="your gmail username")
-parser.add_option("-p", "--password", dest="password", help="your gmail password")
-parser.add_option("-s", "--summary", action="store_true", dest="summary",
-                  default=False, help="prints the summary text that is \
-                                       generally visible in your gmail inbox \
-                                       [default: %default]")
-parser.add_option("-v", "--verbose", action="store_true", dest="summary",
-                  default=False, help="same as --summary")
-
-(options,args) = parser.parse_args()
-
-
 class FancyURLopenerMod(FancyURLopener):
     """
     This overrides the default prompt_user_password, allowing for username and
     password to be passed from the command line.
     """
     def __init__(self, *args, **kwargs):
-        # uncomment this once urllib uses new style classes, or in python 3.0+
+        self.username = kwargs['username']
+        self.password = kwargs['password']
+
+        # once urllib uses new style classes, or in python 3.0+, use:
         # super(FancyURLopenerMod, self).__init__(*args, **kwargs)
 
-        # till then this will work, but not in python 3.0+
+        # till then this will work, but not in python 3.0+:
         FancyURLopener.__init__(self, *args, **kwargs)
 
     def prompt_user_passwd(self,host,realm):
         import getpass
         try: 
-            if options.username: 
-                user = options.username
+            if self.username: user = self.username
             else: user = raw_input("Enter username for %s at %s: " % (realm,
                                                                       host))
-            if options.password: passwd = options.password
+            if self.password: passwd = self.password
             else: passwd = getpass.getpass("Enter password for %s in %s at %s: " %
                                            (user, realm, host))
             return user, passwd
@@ -47,78 +35,172 @@ class FancyURLopenerMod(FancyURLopener):
             print
             return None, None
 
-url = 'https://mail.google.com/mail/feed/atom/'
-opener = FancyURLopenerMod()
-f = opener.open(url)
-feed = f.read()
+class GMail(object):
 
-tree = ET.fromstring(feed)
+    def __init__(self, timezone=(0,0)):
 
-TZ = (+5,30)
-negative_day = (-24,0)
+        self.timezone = timezone
 
-# convert TZ to seconds
-TZ = (TZ[0]*60 + TZ[1])*60
-negative_day = (negative_day[0]*60 + negative_day[1])*60
+        self.xml_tags = {
+                    'entry' : "{http://purl.org/atom/ns#}entry",
+                    'fullcount' : "{http://purl.org/atom/ns#}fullcount",
 
-def sanitize_datetime(datestring):
-    emaildate = datestring.split('T')[0]
-    emailtime = datestring.split('T')[1].split('Z')[0]
+                    'title' : "{http://purl.org/atom/ns#}title",
+                    'summary' : "{http://purl.org/atom/ns#}summary",
+                    'link' : "{http://purl.org/atom/ns#}link",
+                    'modified' : "{http://purl.org/atom/ns#}modified",
+                    'issued' : "{http://purl.org/atom/ns#}issued",
+                    'id' : "{http://purl.org/atom/ns#}id",
+                    'name' : "{http://purl.org/atom/ns#}author/{http://purl.org/atom/ns#}name",
+                    'email' : "{http://purl.org/atom/ns#}author/{http://purl.org/atom/ns#}email"
+                    }
+
+    def open_feed(self, username=None, password=None):
+        """
+        uses gmail's atom feed to retrieve a summary of the inbox, returns an XML
+        element tree
+        
+        FancyURLopenerMod is simply urllib.FancyURLopener with a modified
+        prompt_user_password in order to accept command line arguments
+        """
+        url = 'https://mail.google.com/mail/feed/atom/'
+        opener = FancyURLopenerMod(username = username, password = password)
+        f = opener.open(url)
+        feed = f.read()
+        f.close()
+
+        self.tree = ET.fromstring(feed)
+
+    def _timezone(self):
+        """
+        calculates the timezone offsetin seconds, and the value of 1 day in seconds
+        """
+        # negative_day is used later in order to check whether the email came
+        # 'Today','Yesterday', or 'The day before'
+        self.TZ = (self.timezone[0]*60 + self.timezone[1])*60
+        self.negative_day = (-24)*60*60
+        assert self.negative_day < 0
+
+    def sanitize_datetime(self, datestring):
+        """
+        accepts the datestring as obtained from the atom feed and returns the time
+        in your timezone and the date as one of 'Today','Yesterday', 'The day
+        before' or the date itself (eg. January 1, 2011)
+        """
+        self._timezone()
+
+        # the date in the feed is in the format 2011-11-20T05:13:59Z
+        emaildate = datestring.split('T')[0]
+        emailtime = datestring.split('T')[1].split('Z')[0]
+        
+        datetime_str = []
+        datetime_str.extend([int(x) for x in emaildate.split('-')])
+        datetime_str.extend([int(x) for x in emailtime.split(':')])
+
+        email_datetime = datetime.datetime(*datetime_str)
+        timezone_correction = datetime.timedelta(0,self.TZ)
+        email_datetime += timezone_correction
+
+        # calculate today, yesterday and the day before using the seconds value of 1 day
+        today = datetime.datetime.today()
+
+        yesterday = datetime.datetime.today() \
+                    + datetime.timedelta(0,self.negative_day)
+
+        daybefore = datetime.datetime.today() \
+                    + datetime.timedelta(0,self.negative_day) \
+                    + datetime.timedelta(0,self.negative_day)
+
+        # %F displays the full date as %Y-%m-%d
+        email_datetime_date = email_datetime.strftime('%F')
+        today_date = today.strftime('%F')
+        yesterday_date = yesterday.strftime('%F')
+        daybefore_date = daybefore.strftime('%F')
+
+        if email_datetime_date == today_date: sanitized_date = 'Today'
+        elif email_datetime_date == yesterday_date: sanitized_date = 'Yesterday'
+        elif email_datetime_date == daybefore_date: sanitized_date = 'Day before yesterday'
+        else: sanitized_date = email_datetime_date.strftime('%B %d, %Y')
+
+        #TODO WTF is this shit??
+        sanitized_time = email_datetime_time = email_datetime.strftime('%l:%M %P')
+
+        return sanitized_date, sanitized_time
+
+    def printmail(self, summary=False, printcount=10, printall=False):
+        """
+        Returns the number of emails retrieved
+        """
+
+        print '\n', self.tree.find(self.xml_tags['title']).text, '\n'
+
+        count = int(self.tree.find(self.xml_tags['fullcount']).text)
+
+        if not count:
+            print 'No new messages!\n'
+            return 0
+        
+        printcount = int(printcount)
+
+        if printall: printcount = -1
+
+        for n, k in enumerate(self.tree.findall(self.tree[-1].tag)):
+            if printcount == 0: break
+            printcount -= 1
+            sdate, stime = self.sanitize_datetime(k.find(self.xml_tags['issued']).text)
+            print '%s. %s at %s: %s <%s> wrote "%s"' % (n+1, sdate,stime,
+                                            k.find(self.xml_tags['name']).text,
+                                            k.find(self.xml_tags['email']).text,
+                                            k.find(self.xml_tags['title']).text)
+            if summary: print '\tText: %s' % (k.find(self.xml_tags['summary']).text)
+
+        return count
+
+
+if __name__ == '__main__':
+
+    usage = '%prog [options] [username1] [username2] ...'
+    parser = OptionParser(usage=usage)
+    parser.add_option("-u", "--username", dest="username",
+            help="your gmail username. use this if you also want to specify the password on the command line. otherwise simply pass the usernames as arguments")
+    parser.add_option("-p", "--password", dest="password", help="your gmail password")
+    parser.add_option("-s", "--summary", action="store_true", dest="summary",
+                      default=False, help="prints the summary text that is generally visible in your gmail inbox [default: %default]")
+    parser.add_option("-n", dest="printcount", default=10,
+                      help="print 'n' messages")
+    parser.add_option("-a", "--all", action="store_true", dest="printall",
+                      default=False, help="prints all messages in your inbox")
+
+    (options,args) = parser.parse_args()
+
+    try: int(options.printcount)
+    except ValueError:
+        print 'The parameter to -n needs to be a number'
+        exit()
+
+    if options.username or options.password:
+        try:
+            assert options.username
+            assert options.password
+        except AssertionError:
+            print 'The --username flag and the --password flag MUST be used in \
+                    conjunction or avoided altogether'
+            exit()
+        mailchecker = GMail(timezone=(+5,30))
+        mailchecker.open_feed(username=options.username, password=options.password)
+        mailchecker.printmail(options.summary, options.printcount, options.printall)
+
+    feeds = []
+
+    for username in args:
+        mailchecker = GMail(timezone=(+5,30))
+        mailchecker.open_feed(username=username)
+        feeds.append(mailchecker)
+
+    count = []
+
+    for feed in feeds:
+        count.append(feed.printmail(options.summary, options.printcount, options.printall))
     
-    datetime_str = []
-    datetime_str.extend([int(x) for x in emaildate.split('-')])
-    datetime_str.extend([int(x) for x in emailtime.split(':')])
-
-    email_datetime = datetime.datetime(*datetime_str)
-    timezone_correction = datetime.timedelta(0,TZ)
-    email_datetime += timezone_correction
-
-    # check date
-    today = datetime.datetime.today()
-    yesterday = datetime.datetime.today() + datetime.timedelta(0,negative_day)
-    daybefore = datetime.datetime.today() + datetime.timedelta(0,negative_day) \
-                + datetime.timedelta(0,negative_day)
-
-    email_datetime_date = email_datetime.strftime('%F')
-    today_date = today.strftime('%F')
-    yesterday_date = yesterday.strftime('%F')
-    daybefore_date = daybefore.strftime('%F')
-
-    if email_datetime_date == today_date: sanitized_date = 'Today'
-    elif email_datetime_date == yesterday_date: sanitized_date = 'Yesterday'
-    elif email_datetime_date == daybefore_date: sanitized_date = 'Day before yesterday'
-    else: sanitized_date = email_datetime_date.strftime('%B %d, %Y')
-
-    # check time
-    sanitized_time = email_datetime_time = email_datetime.strftime('%l:%M %P')
-
-    return sanitized_date, sanitized_time
-
-
-entry = "{http://purl.org/atom/ns#}entry"
-fullcount = "{http://purl.org/atom/ns#}fullcount"
-
-title = "{http://purl.org/atom/ns#}title"
-summary = "{http://purl.org/atom/ns#}summary"
-link = "{http://purl.org/atom/ns#}link"
-modified = "{http://purl.org/atom/ns#}modified"
-issued = "{http://purl.org/atom/ns#}issued"
-id = "{http://purl.org/atom/ns#}id"
-name = "{http://purl.org/atom/ns#}author/{http://purl.org/atom/ns#}name"
-email = "{http://purl.org/atom/ns#}author/{http://purl.org/atom/ns#}email"
-
-
-print
-
-count = int(tree.find(fullcount).text)
-
-if not count:
-    print 'No new messages!\n'
-    exit()
-
-for k in tree.findall(tree[-1].tag):
-    sdate, stime = sanitize_datetime(k.find(issued).text)
-    print '%s at %s: %s <%s> wrote "%s"' % (sdate, stime, k.find(name).text, k.find(email).text, k.find(title).text)
-    if options.summary: print '\t\tText: %s' % (k.find(summary).text)
-
-print '\nTotal: %s unread messages\n' % count
+    if count: print '\n%s messages recieved' % \
+            ('+ '.join([str(i) for i in count]) if len(count)>1 else count[0] )
