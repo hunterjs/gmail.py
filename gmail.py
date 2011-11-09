@@ -5,6 +5,13 @@ import datetime
 from optparse import OptionParser    
 from xml.etree import ElementTree as ET
 
+class TooManyPasswordsError(BaseException):
+    def __init__(self, message=None):
+        BaseException.__init__(self, message)
+
+class UnauthorizedAccessError(BaseException):
+    def __init__(self, message=None):
+        BaseException.__init__(self, message)
 
 class FancyURLopenerMod(FancyURLopener):
     """
@@ -12,20 +19,39 @@ class FancyURLopenerMod(FancyURLopener):
     password to be passed from the command line.
     """
     def __init__(self, *args, **kwargs):
-        self.username = kwargs['username']
-        self.password = kwargs['password']
+        try: self.username = kwargs['username']
+        except KeyError: self.username = None
+        try: self.password = kwargs['password']
+        except KeyError: self.password = None
 
         # once urllib uses new style classes, or in python 3.0+, use:
         # super(FancyURLopenerMod, self).__init__(*args, **kwargs)
         # till then this will work, but not in python 3.0+:
         FancyURLopener.__init__(self, *args, **kwargs)
 
+        # only try opening the account once
+        #self.authtries = 0
+        #self.maxauthtries = 3
+
+        self.flag = False
+
     def prompt_user_passwd(self,host,realm):
+        """
+        overridden method of FancyURLopener, allowing for command line arguments
+        """
+        if self.flag: return None, None
+        self.flag = True
+    
+        #self.authtries += 1
+        #if self.maxauthtries and self.authtries > self.maxauthtries:
+        #    #TODO print a final 'giving up on %username' message
+        #    return TooManyPasswordsError
+
         import getpass
         try: 
-            if self.username: user = self.username
+            if self.username is not None: user = self.username
             else: user = raw_input("Enter username for %s at %s: " % (realm, host))
-            if self.password: passwd = self.password
+            if self.password is not None: passwd = self.password
             else: passwd = getpass.getpass("Enter password for %s in %s at %s: " %
                                            (user, realm, host))
             return user, passwd
@@ -65,6 +91,9 @@ class GMail(object):
         feed = f.read()
         f.close()
         self.tree = ET.fromstring(feed)
+        if self.tree.tag == 'HTML':
+            #TODO make sure that unauthorized is in the page title
+            raise UnauthorizedAccessError
 
     def _timezone(self):
         """
@@ -74,6 +103,7 @@ class GMail(object):
         # 'Today','Yesterday', or 'The day before'
         timezone_tuple = (int(self.timezone[:-2]), int(self.timezone[-2:]))
         self.TZ = (timezone_tuple[0]*60 + timezone_tuple[1])*60
+        assert self.TZ == 19800
         self.negative_day = (-24)*60*60
         assert self.negative_day < 0
 
@@ -168,6 +198,12 @@ if __name__ == '__main__':
         print 'The parameter to -n needs to be a number'
         exit()
 
+    # accounts is a list of (username, password) tuples. if username/password
+    # flags are provided they are added to the list before adding username/password
+    # obtained from the args list. all accounts thus obtained are worked on in one go
+    accounts = []
+
+    # verifing that username and password flags are both provided, or neither are
     if options.username or options.password:
         try:
             assert options.username
@@ -175,22 +211,33 @@ if __name__ == '__main__':
         except AssertionError:
             print 'The --username flag and the --password flag MUST be used in \
                     conjunction or avoided altogether'
-            exit()
-        mailchecker = GMail(timezone=options.timezone)
-        mailchecker.open_feed(username=options.username, password=options.password)
-        mailchecker.printmail(options.summary, options.printcount, options.printall)
+        else:
+            accounts = [(options.username, options.password)]
 
     feeds = []
-
+    passwords = []
+    
+    import getpass
     for username in args:
-        mailchecker = GMail(timezone=options.timezone)
-        mailchecker.open_feed(username=username)
-        feeds.append(mailchecker)
+        accounts.append((username, getpass.getpass('Enter password for account %s: ' % username)))
 
     count = []
+    for username, password in accounts:
+        mailchecker = GMail(timezone=options.timezone)
+        try: mailchecker.open_feed(username=username, password = password)
+        except UnauthorizedAccessError:
+            print 'Incorrect password for account %s, ignoring.' % username
 
-    for feed in feeds:
-        count.append(feed.printmail(options.summary, options.printcount, options.printall))
-    
+            #TODO implement a retry mechanism for incorrect password
+
+            #print 'Incorrect password for %s, retrying: ' % username
+            #try: mailchecker.open_feed(username=username, password = getpass.getpass('Incorrect password for %s, retrying: ' % username))
+            #except TooManyPasswordsError:
+            #    print 'Invalid password entered too many times, giving up.'
+            #else:
+            #    count.append(mailchecker.printmail(options.summary, options.printcount, options.printall))
+        else:
+            count.append(mailchecker.printmail(options.summary, options.printcount, options.printall))
+
     print '\n%s%s messages recieved' % (reduce(lambda x, y: x+y, count) if count else 'No', 
             ' ( %s )' % ' + '.join([str(i) for i in count]) if len(count)>1 else '' )
