@@ -103,7 +103,6 @@ class GMail(object):
         # 'Today','Yesterday', or 'The day before'
         timezone_tuple = (int(self.timezone[:-2]), int(self.timezone[-2:]))
         self.TZ = (timezone_tuple[0]*60 + timezone_tuple[1])*60
-        assert self.TZ == 19800
         self.negative_day = (-24)*60*60
         assert self.negative_day < 0
 
