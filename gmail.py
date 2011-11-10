@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
-from urllib import FancyURLopener
+import sys
+import profile
 import datetime
+
+from urllib import FancyURLopener
 from optparse import OptionParser    
+
 from xml.etree import ElementTree as ET
 
 class TooManyPasswordsError(BaseException):
@@ -175,7 +179,7 @@ class GMail(object):
         return count
 
 
-if __name__ == '__main__':
+def parse_cmd_line():
 
     usage = '%prog [options] [username1] [username2] ...'
     parser = OptionParser(usage=usage)
@@ -190,8 +194,14 @@ if __name__ == '__main__':
     parser.add_option("-a", "--all", action="store_true", dest="printall",
                       default=False, help="prints all messages in your inbox")
 
-    (options,args) = parser.parse_args()
+    (options,args) = parser.parse_args(sys.argv[1:])
     
+    return options, args
+
+if __name__ == '__main__':
+
+    options, args = parse_cmd_line()
+
     try: int(options.printcount)
     except ValueError:
         print 'The parameter to -n needs to be a number'
