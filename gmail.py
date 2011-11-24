@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-import profile
 import datetime
 
 from urllib import FancyURLopener
