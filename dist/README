@@ -1,0 +1,40 @@
+========
+gmail.py
+========
+
+This script uses Google's atom feed to retrieve unread messages in your gmail
+account. urllib takes care of the username and password handling, since I
+figure they'd do a better/safer job of it that I could.
+
+*NOTE*
+	Taken from the urllib documentation page, regarding urllib.open():
+	Warning: When opening HTTPS URLs, it does not attempt to validate the
+	server certificate. Use at your own risk!
+
+The last line in gmail.py:
+	print '%s at %s: %s <%s> wrote "%s"' % (sdate, stime, \
+	k.find(name).text, k.find(email).text, k.find(title).text)
+is what actually prints the output and can easily be changed with even a
+rudementary understanding of Python for different formats.
+
+If any other information is required from the XML file, the variables defined
+towards the end with purl.org in their string can be used.
+
+=====
+Usage
+=====
+
+Usage: gmail.py [options] [username1] [username2] ...
+
+Options:
+  -h, --help            show this help message and exit
+  -u USERNAME, --username=USERNAME
+                        your gmail username. use this if you also want to
+                        specify the password on the command line. otherwise
+                        simply pass the usernames as arguments
+  -p PASSWORD, --password=PASSWORD
+                        your gmail password
+  -s, --summary         prints the summary text that is generally visible in
+                        your gmail inbox [default: False]
+  -n PRINTCOUNT         print 'n' messages
+  -a, --all             prints all messages in your inbox

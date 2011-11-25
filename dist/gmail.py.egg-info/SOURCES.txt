@@ -1,0 +1,9 @@
+README
+setup.py
+gmail/__init__.py
+gmail/gmail.py
+gmail.py.egg-info/PKG-INFO
+gmail.py.egg-info/SOURCES.txt
+gmail.py.egg-info/dependency_links.txt
+gmail.py.egg-info/entry_points.txt
+gmail.py.egg-info/top_level.txt
