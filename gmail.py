@@ -197,7 +197,7 @@ def parse_cmd_line():
     
     return options, args
 
-if __name__ == '__main__':
+def main():
 
     options, args = parse_cmd_line()
 
@@ -222,9 +222,6 @@ if __name__ == '__main__':
         else:
             accounts = [(options.username, options.password)]
 
-    feeds = []
-    passwords = []
-    
     import getpass
     for username in args:
         accounts.append((username, getpass.getpass('Enter password for account %s: ' % username)))
@@ -249,3 +246,7 @@ if __name__ == '__main__':
 
     print '\n%s%s messages recieved' % (reduce(lambda x, y: x+y, count) if count else 'No', 
             ' ( %s )' % ' + '.join([str(i) for i in count]) if len(count)>1 else '' )
+
+    
+if __name__ == '__main__':
+    main()
